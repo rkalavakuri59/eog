@@ -8,6 +8,7 @@ import Paper from '@material-ui/core/Paper';
 import { actions } from './reducer';
 import { IState } from '../../store';
 
+const COLOR_MAP = ['#800000', '#000075', '#3cb44b', '#f58231', '#a9a9a9', '#000000'];
 const useStyles = makeStyles({
   chartContainer: {
     margin: '20px',
@@ -18,16 +19,17 @@ const client = createClient({
   url: 'https://react.eogresources.com/graphql',
 });
 
-const query = `
-query($input: MeasurementQuery){
-    getMeasurements(input: $input){
+const query = `query($input: [MeasurementQuery]){
+  getMultipleMeasurements(input: $input){
+    metric
+    measurements{
       metric
       at
       value
       unit
     }
-}
-`;
+  }
+}`;
 
 export type ChartWrapperProps = {
   currentTime: number;
@@ -48,16 +50,29 @@ const ChartWrapper = (props: ChartWrapperProps) => {
 
 export default ChartWrapper;
 
+interface ISomeObject {
+  [key: string]: string;
+}
+interface KSomeObject {
+  id: string;
+  unit: string;
+}
+
 const Chart = (props: ChartWrapperProps) => {
   const dispatch = useDispatch();
   const classes = useStyles();
   const selectedMatrix = useSelector(getMatric);
 
-  const input = {
-    metricName: selectedMatrix,
-    after: props.currentTime - 30 * 60 * 1000,
-    before: props.currentTime,
-  };
+  const input: any = [];
+
+  selectedMatrix.forEach(sm => {
+    input.push({
+      metricName: sm,
+      after: props.currentTime - 30 * 60 * 1000,
+      before: props.currentTime,
+    });
+  });
+
   const [result] = useQuery({
     query,
     variables: {
@@ -75,10 +90,20 @@ const Chart = (props: ChartWrapperProps) => {
 
   if (fetching) return <LinearProgress />;
 
-  const chartData = data.getMeasurements.map((d: any) => {
-    const date = new Date(d.at);
-    d.at = `${date.getHours()}:${date.getMinutes()}`;
-    return d;
+  const K: KSomeObject[] = [];
+  const chartData: ISomeObject[] = [];
+  data.getMultipleMeasurements.forEach((mes: any) => {
+    K.push({ id: mes.metric, unit: mes.measurements[0].unit });
+  });
+
+  data.getMultipleMeasurements[0].measurements.forEach((mes: any, i: number) => {
+    let obj: ISomeObject = {};
+    K.forEach((met: KSomeObject, j: number) => {
+      obj[met.id] = data.getMultipleMeasurements[j].measurements[i].value;
+    });
+    const date = new Date(mes.at);
+    obj['at'] = `${date.getHours()}:${date.getMinutes()}`;
+    chartData.push(obj);
   });
 
   return (
@@ -86,10 +111,24 @@ const Chart = (props: ChartWrapperProps) => {
       <Paper>
         <ResponsiveContainer height={400}>
           <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-            <Line type="monotone" dataKey="value" stroke="#000" dot={false} />
+            {K.map((m: KSomeObject, i: number) => {
+              return (
+                <Line
+                  type="monotone"
+                  yAxisId={m.id}
+                  dataKey={m.id}
+                  stroke={COLOR_MAP[i]}
+                  dot={false}
+                  key={`${i}-line`}
+                />
+              );
+            })}
             <Tooltip />
             <XAxis dataKey="at" interval="preserveStartEnd" tickCount={6} />
-            <YAxis />
+
+            {K.map((m: KSomeObject, i: number) => {
+              return <YAxis yAxisId={m.id} key={i} label={{ value: m.unit, angle: 90, position: 'insideLeft' }} />;
+            })}
           </LineChart>
         </ResponsiveContainer>
       </Paper>

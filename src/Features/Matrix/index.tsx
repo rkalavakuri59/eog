@@ -6,10 +6,16 @@ import { actions } from './reducer';
 import { Provider, createClient, useQuery } from 'urql';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import MenuItem from '@material-ui/core/MenuItem';
+import Chip from '@material-ui/core/Chip';
 
 const useStyles = makeStyles({
   matrixContainer: {
     margin: '20px',
+  },
+  chipClass: {
+    backgroundColor: '#000000',
+    color: '#fff',
+    marginRight: '4px',
   },
 });
 
@@ -46,7 +52,7 @@ const Matrix = () => {
     if (!data) return;
     const { getMetrics } = data;
     dispatch(actions.matrixDataRecevied({ matrix: getMetrics }));
-    dispatch(actions.matrixUpdateSelectedValue({ selectedMatrix: getMetrics[0] }));
+    dispatch(actions.matrixUpdateSelectedValue({ selectedMatrix: [getMetrics[0]] }));
   }, [dispatch, data, error]);
 
   const handleChange = (e: any) => {
@@ -56,7 +62,18 @@ const Matrix = () => {
   if (fetching) return <LinearProgress />;
   return (
     <div className={classes.matrixContainer}>
-      <Select defaultValue={data.getMetrics[0]} onChange={handleChange}>
+      <Select
+        multiple
+        defaultValue={[data.getMetrics[0]]}
+        onChange={handleChange}
+        renderValue={(selected: any) => (
+          <div>
+            {selected.map((value: any) => (
+              <Chip className={classes.chipClass} key={value} label={value} />
+            ))}
+          </div>
+        )}
+      >
         {data.getMetrics.map((d: string, i: number) => (
           <MenuItem key={i} value={d}>
             {d}

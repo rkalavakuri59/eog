@@ -4,16 +4,21 @@ export type Matrix = {
   matrix: [];
 };
 export type SelectedMatrix = {
-  selectedMatrix: string;
+  selectedMatrix: string[];
 };
 
 export type ApiErrorAction = {
   error: string;
 };
 
-const initialState = {
+interface InitialState {
+  matrix: any[];
+  selectedMatrix: string[];
+}
+
+const initialState: InitialState = {
   matrix: [],
-  selectedMatrix: '',
+  selectedMatrix: [],
 };
 
 const slice = createSlice({
@@ -25,7 +30,7 @@ const slice = createSlice({
       state.matrix = matrix;
     },
     matrixUpdateSelectedValue: (state, action: PayloadAction<SelectedMatrix>) => {
-      const { selectedMatrix } = action.payload;
+      const selectedMatrix: string[] = action.payload.selectedMatrix;
       state.selectedMatrix = selectedMatrix;
     },
     matrixApiErrorReceived: (state, action: PayloadAction<ApiErrorAction>) => state,
